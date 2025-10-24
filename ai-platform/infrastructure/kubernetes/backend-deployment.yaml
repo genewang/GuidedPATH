@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guidedpath-backend
+  labels:
+    app: guidedpath-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: guidedpath-backend
+  template:
+    metadata:
+      labels:
+        app: guidedpath-backend
+    spec:
+      containers:
+      - name: backend
+        image: ghcr.io/genewang/guidedpath/backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: guidedpath-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: guidedpath-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5

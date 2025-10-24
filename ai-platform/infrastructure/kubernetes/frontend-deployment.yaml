@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guidedpath-frontend
+  labels:
+    app: guidedpath-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: guidedpath-frontend
+  template:
+    metadata:
+      labels:
+        app: guidedpath-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: ghcr.io/genewang/guidedpath/frontend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: API_URL
+          value: "http://backend-service"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5

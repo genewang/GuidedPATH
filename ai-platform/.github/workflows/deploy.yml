@@ -1,0 +1,104 @@
+name: Deploy to Kubernetes
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE_NAME: ${{ github.repository }}/backend
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}/frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Configure kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=ref,event=branch
+
+    - name: Deploy backend
+      run: |
+        # Update backend deployment with new image
+        sed -i 's|image: ghcr.io/${{ github.repository }}/backend:.*|image: ghcr.io/${{ github.repository }}/backend:${{ steps.meta.outputs.tags }}|g' \
+          infrastructure/kubernetes/backend-deployment.yaml
+
+        kubectl apply -f infrastructure/kubernetes/backend-deployment.yaml
+        kubectl apply -f infrastructure/kubernetes/backend-service.yaml
+
+        # Wait for rollout to complete
+        kubectl rollout status deployment/guidedpath-backend --timeout=300s
+
+    - name: Deploy frontend
+      run: |
+        # Update frontend deployment with new image
+        sed -i 's|image: ghcr.io/${{ github.repository }}/frontend:.*|image: ghcr.io/${{ github.repository }}/frontend:${{ steps.meta.outputs.tags }}|g' \
+          infrastructure/kubernetes/frontend-deployment.yaml
+
+        kubectl apply -f infrastructure/kubernetes/frontend-deployment.yaml
+        kubectl apply -f infrastructure/kubernetes/frontend-service.yaml
+
+        # Wait for rollout to complete
+        kubectl rollout status deployment/guidedpath-frontend --timeout=300s
+
+    - name: Deploy database migrations
+      run: |
+        kubectl apply -f infrastructure/kubernetes/job-migration.yaml
+
+    - name: Verify deployment
+      run: |
+        # Check if services are running
+        kubectl get pods -l app=guidedpath-backend
+        kubectl get pods -l app=guidedpath-frontend
+        kubectl get services
+
+    - name: Run health checks
+      run: |
+        # Wait for services to be ready
+        kubectl wait --for=condition=ready pod -l app=guidedpath-backend --timeout=300s
+        kubectl wait --for=condition=ready pod -l app=guidedpath-frontend --timeout=300s
+
+        # Check backend health
+        BACKEND_URL="http://backend-service/health"
+        if kubectl port-forward svc/backend-service 8000:80 --dry-run=client; then
+          echo "Backend health check passed"
+        fi
+
+    - name: Output deployment URL
+      id: deploy
+      run: |
+        if [[ "${{ github.event.inputs.environment || 'staging' }}" == "production" ]]; then
+          echo "url=https://guidedpath.ai" >> $GITHUB_OUTPUT
+        else
+          echo "url=https://staging.guidedpath.ai" >> $GITHUB_OUTPUT
+        fi

@@ -272,8 +272,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/your-org/guidedpath/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/guidedpath/discussions)
+- **Issues**: [GitHub Issues](https://github.com/genewang/GuidedPATH/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/genewang/GuidedPATH/discussions)
 - **Email**: support@guidedpath.ai
 
 ---

@@ -1,0 +1,57 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/ai-platform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "genewang"
+    labels:
+      - "dependencies"
+      - "python"
+
+  # Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/ai-platform/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "genewang"
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/ai-platform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "genewang"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "genewang"
+    labels:
+      - "dependencies"
+      - "github-actions"
